@@ -3,7 +3,7 @@ namespace ts {
         None = 0,
         Yield = 1 << 0,
         Await = 1 << 1,
-        Type  = 1 << 2,
+        Type = 1 << 2,
         IgnoreMissingOpenBrace = 1 << 4,
         JSDoc = 1 << 5,
     }
@@ -474,9 +474,9 @@ namespace ts {
                 return visitNode(cbNode, (node as JSDocTag).tagName) ||
                     ((node as JSDocPropertyLikeTag).isNameFirst
                         ? visitNode(cbNode, (<JSDocPropertyLikeTag>node).name) ||
-                            visitNode(cbNode, (<JSDocPropertyLikeTag>node).typeExpression)
+                        visitNode(cbNode, (<JSDocPropertyLikeTag>node).typeExpression)
                         : visitNode(cbNode, (<JSDocPropertyLikeTag>node).typeExpression) ||
-                            visitNode(cbNode, (<JSDocPropertyLikeTag>node).name));
+                        visitNode(cbNode, (<JSDocPropertyLikeTag>node).name));
             case SyntaxKind.JSDocAuthorTag:
                 return visitNode(cbNode, (node as JSDocTag).tagName);
             case SyntaxKind.JSDocImplementsTag:
@@ -494,9 +494,9 @@ namespace ts {
                     ((node as JSDocTypedefTag).typeExpression &&
                         (node as JSDocTypedefTag).typeExpression!.kind === SyntaxKind.JSDocTypeExpression
                         ? visitNode(cbNode, (<JSDocTypedefTag>node).typeExpression) ||
-                            visitNode(cbNode, (<JSDocTypedefTag>node).fullName)
+                        visitNode(cbNode, (<JSDocTypedefTag>node).fullName)
                         : visitNode(cbNode, (<JSDocTypedefTag>node).fullName) ||
-                            visitNode(cbNode, (<JSDocTypedefTag>node).typeExpression));
+                        visitNode(cbNode, (<JSDocTypedefTag>node).typeExpression));
             case SyntaxKind.JSDocCallbackTag:
                 return visitNode(cbNode, (node as JSDocTag).tagName) ||
                     visitNode(cbNode, (node as JSDocCallbackTag).fullName) ||
@@ -666,12 +666,12 @@ namespace ts {
         return Parser.JSDocParser.parseJSDocTypeExpressionForTests(content, start, length);
     }
 
-    // Implement the parser as a singleton module.  We do this for perf reasons because creating
-    // parser instances can actually be expensive enough to impact us on projects with many source
-    // files.
+    /** parser 单例的实现.
+     *
+     * 这样做是出于性能方面的考虑，因为创建解析器实例的代价可能会非常昂贵，以至于影响到有许多源文件的项目
+     */
     namespace Parser {
-        // Share a single scanner across all calls to parse a source file.  This helps speed things
-        // up by avoiding the cost of creating/compiling scanners over and over again.
+        /** 在所有调用中共享一个 Scanner 以解析源文件. 这有助于加快处理速度。 */
         const scanner = createScanner(ScriptTarget.Latest, /*skipTrivia*/ true);
         const disallowInAndDecoratorContext = NodeFlags.DisallowInContext | NodeFlags.DecoratorContext;
 
@@ -774,6 +774,15 @@ namespace ts {
         // attached to the EOF token.
         let parseErrorBeforeNextFinishedNode = false;
 
+        /**
+         * 设置初始状态，并将工作交给 parseSourceFileWorker 函数(For simplified Stack)
+         * @param fileName The name of source file
+         * @param sourceText The text of source file
+         * @param languageVersion 编译后的版本，如es5, es6等
+         * @param syntaxCursor ?
+         * @param setParentNodes ?
+         * @param scriptKind ?
+         */
         export function parseSourceFile(fileName: string, sourceText: string, languageVersion: ScriptTarget, syntaxCursor: IncrementalParser.SyntaxCursor | undefined, setParentNodes = false, scriptKind?: ScriptKind): SourceFile {
             scriptKind = ensureScriptKind(fileName, scriptKind);
             if (scriptKind === ScriptKind.JSON) {
@@ -846,7 +855,7 @@ namespace ts {
                             statement.expression = parseLiteralNode() as StringLiteral | NumericLiteral;
                             break;
                         }
-                        // falls through
+                    // falls through
                     default:
                         statement.expression = parseObjectLiteralExpression();
                         break;
@@ -1394,8 +1403,8 @@ namespace ts {
             const p = pos! >= 0 ? pos! : scanner.getStartPos();
             return isNodeKind(kind) || kind === SyntaxKind.Unknown ? new NodeConstructor(kind, p, p) :
                 kind === SyntaxKind.Identifier ? new IdentifierConstructor(kind, p, p) :
-                kind === SyntaxKind.PrivateIdentifier ? new PrivateIdentifierConstructor(kind, p, p) :
-                new TokenConstructor(kind, p, p);
+                    kind === SyntaxKind.PrivateIdentifier ? new PrivateIdentifierConstructor(kind, p, p) :
+                        new TokenConstructor(kind, p, p);
         }
 
         function createNodeWithJSDoc(kind: SyntaxKind, pos?: number): Node {
@@ -1708,7 +1717,7 @@ namespace ts {
                         case SyntaxKind.DotToken: // Not an array literal member, but don't want to close the array (see `tests/cases/fourslash/completionsDotInArrayLiteralInObjectLiteral.ts`)
                             return true;
                     }
-                    // falls through
+                // falls through
                 case ParsingContext.ArgumentExpressions:
                     return token() === SyntaxKind.DotDotDotToken || isStartOfExpression();
                 case ParsingContext.Parameters:
@@ -3153,7 +3162,7 @@ namespace ts {
                 case SyntaxKind.QuestionQuestionToken:
                     // If there is '??', consider that is prefix '?' in JSDoc type.
                     scanner.reScanQuestionToken();
-                    // falls through
+                // falls through
                 case SyntaxKind.QuestionToken:
                     return parseJSDocUnknownOrNullableType();
                 case SyntaxKind.FunctionKeyword:
@@ -4250,7 +4259,7 @@ namespace ts {
                     if (isAwaitExpression()) {
                         return parseAwaitExpression();
                     }
-                    // falls through
+                // falls through
                 default:
                     return parseUpdateExpression();
             }
@@ -4284,8 +4293,8 @@ namespace ts {
                     if (sourceFile.languageVariant !== LanguageVariant.JSX) {
                         return false;
                     }
-                    // We are in JSX context and the token is part of JSXElement.
-                    // falls through
+                // We are in JSX context and the token is part of JSXElement.
+                // falls through
                 default:
                     return true;
             }
@@ -5064,7 +5073,7 @@ namespace ts {
         function parseArgumentOrArrayLiteralElement(): Expression {
             return token() === SyntaxKind.DotDotDotToken ? parseSpreadElement() :
                 token() === SyntaxKind.CommaToken ? <Expression>createNode(SyntaxKind.OmittedExpression) :
-                parseAssignmentExpressionOrHigher();
+                    parseAssignmentExpressionOrHigher();
         }
 
         function parseArgumentExpression(): Expression {
@@ -5175,9 +5184,9 @@ namespace ts {
             const isAsync = hasModifierOfKind(node, SyntaxKind.AsyncKeyword) ? SignatureFlags.Await : SignatureFlags.None;
             node.name =
                 isGenerator && isAsync ? doInYieldAndAwaitContext(parseOptionalIdentifier) :
-                isGenerator ? doInYieldContext(parseOptionalIdentifier) :
-                isAsync ? doInAwaitContext(parseOptionalIdentifier) :
-                parseOptionalIdentifier();
+                    isGenerator ? doInYieldContext(parseOptionalIdentifier) :
+                        isAsync ? doInAwaitContext(parseOptionalIdentifier) :
+                            parseOptionalIdentifier();
 
             fillSignature(SyntaxKind.ColonToken, isGenerator | isAsync, node);
             node.body = parseFunctionBlock(isGenerator | isAsync);
@@ -5698,6 +5707,9 @@ namespace ts {
             return lookAhead(nextTokenIsIdentifierOrStartOfDestructuring);
         }
 
+        /**
+         * 根据 Scanner 返回的当前 token 来切换(调用相应的 parseXXX 函数)，例如：如果当前 token 是一个 SemicolonToken(分号标记)，就会调用 paserEmptyStatement 为空语句创建一个 AST 节点
+         */
         function parseStatement(): Statement {
             switch (token()) {
                 case SyntaxKind.SemicolonToken:
@@ -6720,8 +6732,8 @@ namespace ts {
             // Try to use the first top-level import/export when available, then
             // fall back to looking for an 'import.meta' somewhere in the tree if necessary.
             sourceFile.externalModuleIndicator =
-                    forEach(sourceFile.statements, isAnExternalModuleIndicatorNode) ||
-                    getImportMetaIfNecessary(sourceFile);
+                forEach(sourceFile.statements, isAnExternalModuleIndicatorNode) ||
+                getImportMetaIfNecessary(sourceFile);
         }
 
         function isAnExternalModuleIndicatorNode(node: Node) {
@@ -7141,7 +7153,7 @@ namespace ts {
                                     break;
                                 }
                                 scanner.setTextPos(scanner.getTextPos() - 1);
-                                // falls through
+                            // falls through
                             case SyntaxKind.EndOfFileToken:
                                 // Done
                                 break loop;
@@ -7184,8 +7196,8 @@ namespace ts {
                                     indent += 1;
                                     break;
                                 }
-                                // record the * as a comment
-                                // falls through
+                            // record the * as a comment
+                            // falls through
                             default:
                                 if (state !== JSDocState.SavingBackticks) {
                                     state = JSDocState.SavingComments; // leading identifiers start recording as well
@@ -8499,7 +8511,7 @@ namespace ts {
                 return;
             }
             if (pragma.args) {
-                const argument: {[index: string]: string | {value: string, pos: number, end: number}} = {};
+                const argument: { [index: string]: string | { value: string, pos: number, end: number } } = {};
                 for (const arg of pragma.args) {
                     const matcher = getNamedArgRegEx(arg.name);
                     const matchResult = matcher.exec(text);
@@ -8556,11 +8568,11 @@ namespace ts {
         return;
     }
 
-    function getNamedPragmaArguments(pragma: PragmaDefinition, text: string | undefined): {[index: string]: string} | "fail" {
+    function getNamedPragmaArguments(pragma: PragmaDefinition, text: string | undefined): { [index: string]: string } | "fail" {
         if (!text) return {};
         if (!pragma.args) return {};
         const args = text.split(/\s+/);
-        const argMap: {[index: string]: string} = {};
+        const argMap: { [index: string]: string } = {};
         for (let i = 0; i < pragma.args.length; i++) {
             const argument = pragma.args[i];
             if (!args[i] && !argument.optional) {
