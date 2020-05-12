@@ -1010,6 +1010,9 @@ namespace ts {
             }
         }
 
+        /**
+         * checker使用该函数报告错误
+         */
         function error(location: Node | undefined, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): Diagnostic {
             const diagnostic = location
                 ? createDiagnosticForNode(location, message, arg0, arg1, arg2, arg3)

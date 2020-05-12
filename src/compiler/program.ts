@@ -1583,6 +1583,16 @@ namespace ts {
             return hasEmitBlockingDiagnostics.has(toPath(emitFileName));
         }
 
+        /**
+         * Program 调用 Emiter
+         * @param program
+         * @param sourceFile
+         * @param writeFileCallback
+         * @param cancellationToken
+         * @param emitOnlyDtsFiles
+         * @param customTransformers
+         * @param forceDtsEmit
+         */
         function emitWorker(program: Program, sourceFile: SourceFile | undefined, writeFileCallback: WriteFileCallback | undefined, cancellationToken: CancellationToken | undefined, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers, forceDtsEmit?: boolean): EmitResult {
             if (!forceDtsEmit) {
                 const result = handleNoEmitOptions(program, sourceFile, cancellationToken);

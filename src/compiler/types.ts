@@ -657,11 +657,11 @@ namespace ts {
         modifiers?: ModifiersArray;                           // Array of modifiers
         /* @internal */ id?: number;                          // Unique id (used to look up NodeLinks)
 
-        /** 当前节点(在 AST 中)的父节点 (initialized by binding) */
+        /** 当前节点(在 AST 中)的父节点（通过绑定初始化）*/
         parent: Node;
         /* @internal */ original?: Node;                      // The original node if this is an updated node.
         /* @internal */ symbol: Symbol;                       // Symbol declared by node (initialized by binding)
-        /* @internal */ locals?: SymbolTable;                 // Locals associated with node (initialized by binding)
+        /** @internal 与节点关联的局部变量（通过绑定初始化）*/ locals?: SymbolTable;
         /* @internal */ nextContainer?: Node;                 // Next container in declaration order (initialized by binding)
         /* @internal */ localSymbol?: Symbol;                 // Local symbol declared by node (initialized by binding only for exported nodes)
         /* @internal */ flowNode?: FlowNode;                  // Associated FlowNode (initialized by binding)
@@ -4116,8 +4116,10 @@ namespace ts {
         escapedName: __String;                  // Name of symbol
         declarations: Declaration[];            // Declarations associated with this symbol
         valueDeclaration: Declaration;          // First value declaration of the symbol
-        members?: SymbolTable;                  // Class, interface or object literal instance members
-        exports?: SymbolTable;                  // Module exports
+        /** Class, interface or object literal instance members */
+        members?: SymbolTable;
+        /** Module exports */
+        exports?: SymbolTable;
         globalExports?: SymbolTable;            // Conditional global UMD exports
         /* @internal */ id?: number;            // Unique id (used to look up SymbolLinks)
         /* @internal */ mergeId?: number;       // Merge id (used to look up merged symbol)

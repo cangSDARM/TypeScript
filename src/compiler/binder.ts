@@ -234,6 +234,11 @@ namespace ts {
             return createDiagnosticForNodeInSourceFile(getSourceFileOfNode(node) || file, node, message, arg0, arg1, arg2);
         }
 
+        /**
+         * 该函数主要是检查 file.locals 是否定义，如果没有则交给 bind (a local function) 来处理
+         * @param f SourceFile
+         * @param opts CompilerOptions
+         */
         function bindSourceFile(f: SourceFile, opts: CompilerOptions) {
             file = f;
             options = opts;
@@ -291,15 +296,28 @@ namespace ts {
             }
         }
 
+        /**
+         * 更新 symbolCount，并使用指定的参数创建Symbol
+         * @param flags flags
+         * @param name name
+         */
         function createSymbol(flags: SymbolFlags, name: __String): Symbol {
             symbolCount++;
             return new Symbol(flags, name);
         }
 
+        /**
+         * 用于绑定 SourceFile 节点到源文件 Symbol(其是外部模块的情况下)
+         * @param symbol Symbol
+         * @param node Declaration
+         * @param symbolFlags SymbolFlags
+         */
         function addDeclarationToSymbol(symbol: Symbol, node: Declaration, symbolFlags: SymbolFlags) {
             symbol.flags |= symbolFlags;
 
+            // AST 节点到 symbol 的链接
             node.symbol = symbol;
+            // 将该 node 添加为该 symbol 的一个声明
             symbol.declarations = appendIfUnique(symbol.declarations, node);
 
             if (symbolFlags & (SymbolFlags.Class | SymbolFlags.Enum | SymbolFlags.Module | SymbolFlags.Variable) && !symbol.exports) {
@@ -1783,7 +1801,7 @@ namespace ts {
                     if (isObjectLiteralOrClassExpressionMethod(node)) {
                         return ContainerFlags.IsContainer | ContainerFlags.IsControlFlowContainer | ContainerFlags.HasLocals | ContainerFlags.IsFunctionLike | ContainerFlags.IsObjectLiteralOrClassExpressionMethod;
                     }
-                    // falls through
+                // falls through
                 case SyntaxKind.Constructor:
                 case SyntaxKind.FunctionDeclaration:
                 case SyntaxKind.MethodSignature:
@@ -2069,7 +2087,7 @@ namespace ts {
                         declareModuleMember(node, symbolFlags, symbolExcludes);
                         break;
                     }
-                    // falls through
+                // falls through
                 default:
                     if (!blockScopeContainer.locals) {
                         blockScopeContainer.locals = createSymbolTable();
@@ -2122,7 +2140,7 @@ namespace ts {
                             case AssignmentDeclarationKind.Property:
                                 container = isExportsOrModuleExportsOrAlias(file, declName.parent.expression) ? file
                                     : isPropertyAccessExpression(declName.parent.expression) ? declName.parent.expression.name
-                                    : declName.parent.expression;
+                                        : declName.parent.expression;
                                 break;
                             case AssignmentDeclarationKind.None:
                                 return Debug.fail("Shouldn't have detected typedef or enum on non-assignment declaration");
@@ -2349,6 +2367,14 @@ namespace ts {
             }
         }
 
+        /**
+         * 处理任一kind为 SourceFile 的节点
+         *
+         * 1. 分配 `node.parent`
+         * 2. 交给 `function bindWorker` 做重活
+         * 3. 调用 `bindChildren`，并在每个子节点调用 `function bind`
+         * @param node a node in AST
+         */
         function bind(node: Node | undefined): void {
             if (!node) {
                 return;
@@ -2387,9 +2413,11 @@ namespace ts {
                 parent = node;
                 const containerFlags = getContainerFlags(node);
                 if (containerFlags === ContainerFlags.None) {
+                    //如果该节点不是容器，则向下寻找
                     bindChildren(node);
                 }
                 else {
+                    //否则bindContainer
                     bindContainer(node, containerFlags);
                 }
                 parent = saveParent;
@@ -2443,6 +2471,10 @@ namespace ts {
             return nodeText === '"use strict"' || nodeText === "'use strict'";
         }
 
+        /**
+         * 依据`node.kind`进行切换，并将工作委托给对应的bind函数
+         * @param node a node in AST
+         */
         function bindWorker(node: Node) {
             switch (node.kind) {
                 /* Strict mode checks */
@@ -2458,7 +2490,7 @@ namespace ts {
                         bindBlockScopedDeclaration(parentNode as Declaration, SymbolFlags.TypeAlias, SymbolFlags.TypeAliasExcludes);
                         break;
                     }
-                    // falls through
+                // falls through
                 case SyntaxKind.ThisKeyword:
                     if (currentFlow && (isExpression(node) || parent.kind === SyntaxKind.ShorthandPropertyAssignment)) {
                         node.flowNode = currentFlow;
@@ -2645,7 +2677,7 @@ namespace ts {
                     if (!isFunctionLike(node.parent)) {
                         return;
                     }
-                    // falls through
+                // falls through
                 case SyntaxKind.ModuleBlock:
                     return updateStrictModeStatementList((<Block | ModuleBlock>node).statements);
 
@@ -2656,7 +2688,7 @@ namespace ts {
                     if (node.parent.kind !== SyntaxKind.JSDocTypeLiteral) {
                         break;
                     }
-                    // falls through
+                // falls through
                 case SyntaxKind.JSDocPropertyTag:
                     const propTag = node as JSDocPropertyLikeTag;
                     const flags = propTag.isBracketed || propTag.typeExpression && propTag.typeExpression.type.kind === SyntaxKind.JSDocOptionalType ?
@@ -2724,8 +2756,8 @@ namespace ts {
             }
             const diag = !isSourceFile(node.parent) ? Diagnostics.Global_module_exports_may_only_appear_at_top_level
                 : !isExternalModule(node.parent) ? Diagnostics.Global_module_exports_may_only_appear_in_module_files
-                : !node.parent.isDeclarationFile ? Diagnostics.Global_module_exports_may_only_appear_in_declaration_files
-                : undefined;
+                    : !node.parent.isDeclarationFile ? Diagnostics.Global_module_exports_may_only_appear_in_declaration_files
+                        : undefined;
             if (diag) {
                 file.bindDiagnostics.push(createDiagnosticForNode(node, diag));
             }
@@ -3099,9 +3131,9 @@ namespace ts {
             }
             let init = !node ? undefined :
                 isVariableDeclaration(node) ? node.initializer :
-                isBinaryExpression(node) ? node.right :
-                isPropertyAccessExpression(node) && isBinaryExpression(node.parent) ? node.parent.right :
-                undefined;
+                    isBinaryExpression(node) ? node.right :
+                        isPropertyAccessExpression(node) && isBinaryExpression(node.parent) ? node.parent.right :
+                            undefined;
             init = init && getRightMostAssignedExpression(init);
             if (init) {
                 const isPrototypeAssignment = isPrototypeAccess(isVariableDeclaration(node) ? node.name : isBinaryExpression(node) ? node.left : node);
@@ -4148,13 +4180,13 @@ namespace ts {
                     transformFlags |= TransformFlags.AssertES2018;
                     break;
                 }
-                // falls through
+            // falls through
             case SyntaxKind.TaggedTemplateExpression:
                 if (hasInvalidEscape((<TaggedTemplateExpression>node).template)) {
                     transformFlags |= TransformFlags.AssertES2018;
                     break;
                 }
-                // falls through
+            // falls through
             case SyntaxKind.TemplateExpression:
             case SyntaxKind.ShorthandPropertyAssignment:
             case SyntaxKind.StaticKeyword:
