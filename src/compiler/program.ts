@@ -708,7 +708,7 @@ namespace ts {
         let noDiagnosticsTypeChecker: TypeChecker;
         let classifiableNames: UnderscoreEscapedMap<true>;
         const ambientModuleNameToUnmodifiedFileName = createMap<string>();
-        // Todo:: Use this to report why file was included in --extendedDiagnostics
+        // TODO: Use this to report why file was included in --extendedDiagnostics
         let refFileMap: MultiMap<ts.RefFile> | undefined;
 
         const cachedBindAndCheckDiagnosticsForFile: DiagnosticCache<Diagnostic> = {};
@@ -2239,7 +2239,8 @@ namespace ts {
             fileName: string,
             getSourceFile: (fileName: string) => SourceFile | undefined,
             fail?: (diagnostic: DiagnosticMessage, ...argument: string[]) => void,
-            refFile?: SourceFile): SourceFile | undefined {
+            refFile?: SourceFile
+        ): SourceFile | undefined {
 
             if (hasExtension(fileName)) {
                 const canonicalFileName = host.getCanonicalFileName(fileName);
@@ -2339,7 +2340,7 @@ namespace ts {
             return redirect;
         }
 
-        // Get source file from normalized fileName
+        /** Get source file from normalized fileName */
         function findSourceFile(fileName: string, path: Path, isDefaultLib: boolean, ignoreNoDefaultLib: boolean, refFile: RefFile | undefined, packageId: PackageId | undefined): SourceFile | undefined {
             if (useSourceOfProjectReferenceRedirect) {
                 let source = getSourceOfProjectReferenceRedirect(fileName);
@@ -2542,7 +2543,6 @@ namespace ts {
             // look in the output folder of the referenced project rather than the input
             return getResolvedProjectReferenceToRedirect(fileName);
         }
-
 
         function getProjectReferenceOutputName(referencedProject: ResolvedProjectReference, fileName: string) {
             const out = referencedProject.commandLine.options.outFile || referencedProject.commandLine.options.out;

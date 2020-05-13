@@ -339,6 +339,12 @@ namespace ts {
     }
 
     export type ExecuteCommandLineCallbacks = (program: Program | EmitAndSemanticDiagnosticsBuilderProgram | ParsedCommandLine) => void;
+    /**
+     * Run `tsc ...`
+     * @param system System
+     * @param cb ExecuteCommandLineCallbacks
+     * @param commandLineArgs string[]
+     */
     export function executeCommandLine(
         system: System,
         cb: ExecuteCommandLineCallbacks,
@@ -465,6 +471,7 @@ namespace ts {
             undefined;
     }
 
+    /** 执行编译 */
     function performCompilation(
         sys: System,
         cb: ExecuteCommandLineCallbacks,

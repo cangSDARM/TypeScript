@@ -595,6 +595,7 @@ namespace ts {
         }
     }
 
+    /** 单个文件的parser */
     export function createSourceFile(fileName: string, sourceText: string, languageVersion: ScriptTarget, setParentNodes = false, scriptKind?: ScriptKind): SourceFile {
         performance.mark("beforeParse");
         let result: SourceFile;
@@ -775,7 +776,7 @@ namespace ts {
         let parseErrorBeforeNextFinishedNode = false;
 
         /**
-         * 设置初始状态，并将工作交给 parseSourceFileWorker 函数(For simplified Stack)
+         * Do parser. 设置初始状态，并将工作交给 parseSourceFileWorker 函数
          * @param fileName The name of source file
          * @param sourceText The text of source file
          * @param languageVersion 编译后的版本，如es5, es6等

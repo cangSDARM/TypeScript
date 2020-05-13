@@ -5146,6 +5146,9 @@ namespace ts {
 
     export type CompilerOptionsValue = string | number | boolean | (string | number)[] | string[] | MapLike<string[]> | PluginImport[] | ProjectReference[] | null | undefined;
 
+    /**
+     * 和 tsconfig 中的内容几乎相同
+     */
     export interface CompilerOptions {
         /*@internal*/ all?: boolean;
         allowJs?: boolean;
