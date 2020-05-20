@@ -37,7 +37,7 @@
 └── tests              # test
 ```
 
-![compile diagram](./asset/158732-20200113115412762-1000035138.png)
+<img src="./asset/158732-20200113115412762-1000035138.png" width="432px" height="361.2px" />
 
 ## More Info
 
