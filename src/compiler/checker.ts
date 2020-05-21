@@ -15370,7 +15370,9 @@ namespace ts {
         }
 
         function isEmptyAnonymousObjectType(type: Type) {
-            return !!(getObjectFlags(type) & ObjectFlags.Anonymous) && isEmptyObjectType(type);
+            return !!(getObjectFlags(type) & ObjectFlags.Anonymous && (
+                (<ResolvedType>type).members && isEmptyResolvedType(<ResolvedType>type) ||
+                type.symbol && type.symbol.flags & SymbolFlags.TypeLiteral && getMembersOfSymbol(type.symbol).size === 0));
         }
 
         function isStringIndexSignatureOnlyType(type: Type): boolean {
@@ -26384,7 +26386,7 @@ namespace ts {
             return true;
         }
 
-        function invocationErrorDetails(apparentType: Type, kind: SignatureKind): { messageChain: DiagnosticMessageChain, relatedMessage: DiagnosticMessage | undefined } {
+        function invocationErrorDetails(errorTarget: Node, apparentType: Type, kind: SignatureKind): { messageChain: DiagnosticMessageChain, relatedMessage: DiagnosticMessage | undefined } {
             let errorInfo: DiagnosticMessageChain | undefined;
             const isCall = kind === SignatureKind.Call;
             const awaitedType = getAwaitedType(apparentType);
@@ -26453,16 +26455,24 @@ namespace ts {
                     typeToString(apparentType)
                 );
             }
+
+            let headMessage = isCall ? Diagnostics.This_expression_is_not_callable : Diagnostics.This_expression_is_not_constructable;
+
+            // Diagnose get accessors incorrectly called as functions
+            if (isCallExpression(errorTarget.parent) && errorTarget.parent.arguments.length === 0) {
+                const { resolvedSymbol } = getNodeLinks(errorTarget);
+                if (resolvedSymbol && resolvedSymbol.flags & SymbolFlags.GetAccessor) {
+                    headMessage = Diagnostics.This_expression_is_not_callable_because_it_is_a_get_accessor_Did_you_mean_to_use_it_without;
+                }
+            }
+
             return {
-                messageChain: chainDiagnosticMessages(
-                    errorInfo,
-                    isCall ? Diagnostics.This_expression_is_not_callable : Diagnostics.This_expression_is_not_constructable
-                ),
+                messageChain: chainDiagnosticMessages(errorInfo, headMessage),
                 relatedMessage: maybeMissingAwait ? Diagnostics.Did_you_forget_to_use_await : undefined,
             };
         }
         function invocationError(errorTarget: Node, apparentType: Type, kind: SignatureKind, relatedInformation?: DiagnosticRelatedInformation) {
-            const { messageChain, relatedMessage: relatedInfo } = invocationErrorDetails(apparentType, kind);
+            const { messageChain, relatedMessage: relatedInfo } = invocationErrorDetails(errorTarget, apparentType, kind);
             const diagnostic = createDiagnosticForNodeFromMessageChain(errorTarget, messageChain);
             if (relatedInfo) {
                 addRelatedInfo(diagnostic, createDiagnosticForNode(errorTarget, relatedInfo));
@@ -26566,7 +26576,7 @@ namespace ts {
 
             const headMessage = getDiagnosticHeadMessageForDecoratorResolution(node);
             if (!callSignatures.length) {
-                const errorDetails = invocationErrorDetails(apparentType, SignatureKind.Call);
+                const errorDetails = invocationErrorDetails(node.expression, apparentType, SignatureKind.Call);
                 const messageChain = chainDiagnosticMessages(errorDetails.messageChain, headMessage);
                 const diag = createDiagnosticForNodeFromMessageChain(node.expression, messageChain);
                 if (errorDetails.relatedMessage) {
