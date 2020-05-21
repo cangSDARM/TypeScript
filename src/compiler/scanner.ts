@@ -279,6 +279,15 @@ namespace ts {
      */
     const commentDirectiveRegExMultiLine = /^\s*(?:\/|\*)*\s*@(ts-expect-error|ts-ignore)/;
 
+    /**
+     * Rather than recording all the characters, we record the beginning and end of each paragraph, it saves memory.
+     *
+     * Put all start and end positions in the same `map`. Use odd bits to indicate the beginning of each paragraph, and even bits to indicate the end of each paragraph.
+     *
+     * When you need to find whether a `code` is an identifier, use the binary search algorithm to confirm whether it is a valid Unicode identifier.
+     * @param code
+     * @param map unicodeESNextIdentifierPart | unicodeESNextIdentifierStart
+     */
     function lookupInUnicodeMap(code: number, map: readonly number[]): boolean {
         // Bail out quickly if it couldn't possibly be in the map.
         if (code < map[0]) {
@@ -342,6 +351,7 @@ namespace ts {
     }
 
     /* @internal */
+    /** 计算出每一行是从哪一个Position开始的 */
     export function computeLineStarts(text: string): number[] {
         const result: number[] = new Array();
         let pos = 0;
@@ -381,6 +391,7 @@ namespace ts {
     }
 
     /* @internal */
+    /** Query position from row and column number */
     export function computePositionOfLineAndCharacter(lineStarts: readonly number[], line: number, character: number, debugText?: string, allowEdits?: true): number {
         if (line < 0 || line >= lineStarts.length) {
             if (allowEdits) {
@@ -414,6 +425,7 @@ namespace ts {
     }
 
     /* @internal */
+    /** Retrieve position table query row and column number, used such as show error postion */
     export function computeLineAndCharacterOfPosition(lineStarts: readonly number[], position: number): LineAndCharacter {
         const lineNumber = computeLineOfPosition(lineStarts, position);
         return {
@@ -458,13 +470,14 @@ namespace ts {
         return computeLineAndCharacterOfPosition(getLineStarts(sourceFile), position);
     }
 
+    /** Include line breaks and white space */
     export function isWhiteSpaceLike(ch: number): boolean {
         return isWhiteSpaceSingleLine(ch) || isLineBreak(ch);
     }
 
     /** Does not include line breaks. For that, see isWhiteSpaceLike. */
     export function isWhiteSpaceSingleLine(ch: number): boolean {
-        // Note: nextLine is in the Zs space, and should be considered to be a whitespace.
+        // Note: nextLine is in the [Zs space](https://en.wikipedia.org/wiki/Template:Whitespace_(Unicode)), and should be considered to be a whitespace.
         // It is explicitly not a line-break as it isn't in the exact set specified by EcmaScript.
         return ch === CharacterCodes.space ||
             ch === CharacterCodes.tab ||
@@ -607,7 +620,7 @@ namespace ts {
                     break;
 
                 case CharacterCodes.hash:
-                    if (pos === 0 && isShebangTrivia(text, pos)) {
+                    if (pos === 0 && isShebangTrivia(text, pos)) {  // #! Shebang - TC39_Stage 2
                         pos = scanShebangTrivia(text, pos);
                         continue;
                     }
@@ -881,6 +894,12 @@ namespace ts {
     }
 
     /* @internal */
+    /**
+     * Determine whether a string is a legal identifier
+     * @param name The string to be searched
+     * @param languageVersion Compiled target ES version
+     * @param identifierVariant Because of JSX, we need to use this parameter to distinguish
+     */
     export function isIdentifierText(name: string, languageVersion: ScriptTarget | undefined, identifierVariant?: LanguageVariant): boolean {
         let ch = codePointAt(name, 0);
         if (!isIdentifierStart(ch, languageVersion)) {
@@ -943,7 +962,7 @@ namespace ts {
             isUnterminated: () => (tokenFlags & TokenFlags.Unterminated) !== 0,
             getCommentDirectives: () => commentDirectives,
             getTokenFlags: () => tokenFlags,
-            reScanGreaterToken,
+            reScanGreaterToken, // We have to reScan it and something below. Because some token is context-sensitive
             reScanSlashToken,
             reScanTemplateToken,
             reScanTemplateHeadOrNoSubstitutionTemplate,
@@ -1644,15 +1663,15 @@ namespace ts {
                             }
                             return token = SyntaxKind.WhitespaceTrivia;
                         }
-                    case CharacterCodes.exclamation:
+                    case CharacterCodes.exclamation:    // !
                         if (text.charCodeAt(pos + 1) === CharacterCodes.equals) {
                             if (text.charCodeAt(pos + 2) === CharacterCodes.equals) {
-                                return pos += 3, token = SyntaxKind.ExclamationEqualsEqualsToken;
+                                return pos += 3, token = SyntaxKind.ExclamationEqualsEqualsToken;   // !==
                             }
-                            return pos += 2, token = SyntaxKind.ExclamationEqualsToken;
+                            return pos += 2, token = SyntaxKind.ExclamationEqualsToken; // !=
                         }
                         pos++;
-                        return token = SyntaxKind.ExclamationToken;
+                        return token = SyntaxKind.ExclamationToken; // !
                     case CharacterCodes.doubleQuote:
                     case CharacterCodes.singleQuote:
                         tokenValue = scanString();
@@ -2444,10 +2463,24 @@ namespace ts {
             return result;
         }
 
+        /**
+         * Sometimes we don’t need to look back, but we need to look ahead. For example, the keywords of TS: interface, enum etc.
+         *
+         * Unlike `tryScan`, It will unconditionally restore us to where we were.
+         *
+         * Also see: interface Scan
+         */
         function lookAhead<T>(callback: () => T): T {
             return speculationHelper(callback, /*isLookahead*/ true);
         }
 
+        /**
+         * Sometimes we don’t need to look back, but we need to look ahead. For example, the keywords of TS: interface, enum etc.
+         *
+         * Unlike `lookAhead`, It will not "unconditionally" restore us to where we were.
+         *
+         * Also see: interface Scan
+         */
         function tryScan<T>(callback: () => T): T {
             return speculationHelper(callback, /*isLookahead*/ false);
         }

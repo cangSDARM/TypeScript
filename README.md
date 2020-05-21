@@ -39,6 +39,8 @@
 
 <img src="./asset/158732-20200113115412762-1000035138.png" width="432px" height="361.2px" />
 
+See: [More Details](./Details.md)
+
 ## More Info
 
 *  [microsoft/TypeScript/README](https://github.com/microsoft/TypeScript/blob/master/README.md)
