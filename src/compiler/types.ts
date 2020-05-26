@@ -2826,20 +2826,24 @@ namespace ts {
         id?: number;     // Node id used by flow type cache in checker
     }
 
-    // FlowStart represents the start of a control flow. For a function expression or arrow
-    // function, the node property references the function (which in turn has a flowNode
-    // property for the containing control flow).
+    /** FlowStart represents the start of a control flow.For a function expression or arrow
+     * function, the node property references the function (which in turn has a flowNode
+     * property for the containing control flow).
+     */
     export interface FlowStart extends FlowNodeBase {
         node?: FunctionExpression | ArrowFunction | MethodDeclaration;
     }
 
-    // FlowLabel represents a junction with multiple possible preceding control flows.
+    /** FlowLabel represents a junction with multiple possible preceding control flows. */
     export interface FlowLabel extends FlowNodeBase {
+        /** Represents the last parent process node executing this process node */
         antecedents: FlowNode[] | undefined;
     }
 
-    // FlowAssignment represents a node that assigns a value to a narrowable reference,
-    // i.e. an identifier or a dotted name that starts with an identifier or 'this'.
+    /** FlowAssignment represents a node that assigns a value to a narrowable reference,
+     *
+     * i.e. an identifier or a dotted name that starts with an identifier or 'this'.
+     */
     export interface FlowAssignment extends FlowNodeBase {
         node: Expression | VariableDeclaration | BindingElement;
         antecedent: FlowNode;
@@ -2850,8 +2854,9 @@ namespace ts {
         antecedent: FlowNode;
     }
 
-    // FlowCondition represents a condition that is known to be true or false at the
-    // node's location in the control flow.
+    /** FlowCondition represents a condition that is known to be true or false at the
+     * node's location in the control flow.
+     */
     export interface FlowCondition extends FlowNodeBase {
         node: Expression;
         antecedent: FlowNode;
@@ -2864,8 +2869,10 @@ namespace ts {
         antecedent: FlowNode;
     }
 
-    // FlowArrayMutation represents a node potentially mutates an array, i.e. an
-    // operation of the form 'x.push(value)', 'x.unshift(value)' or 'x[n] = value'.
+    /** FlowArrayMutation represents a node potentially mutates an array
+     *
+     * i.e. an operation of the form `x.push(value)`, `x.unshift(value)` or `x[n] = value`.
+     */
     export interface FlowArrayMutation extends FlowNodeBase {
         node: CallExpression | BinaryExpression;
         antecedent: FlowNode;

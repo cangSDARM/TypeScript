@@ -682,8 +682,10 @@ namespace ts {
         const disallowInAndDecoratorContext = NodeFlags.DisallowInContext | NodeFlags.DecoratorContext;
 
         // capture constructors in 'initializeState' to avoid null checks
+        /** To improve performance, use different Nodes for different environments */
         let NodeConstructor: new (kind: SyntaxKind, pos: number, end: number) => Node;
         let TokenConstructor: new (kind: SyntaxKind, pos: number, end: number) => Node;
+        /** Keep the unique reference of each string in memory */
         let IdentifierConstructor: new (kind: SyntaxKind, pos: number, end: number) => Node;
         let PrivateIdentifierConstructor: new (kind: SyntaxKind, pos: number, end: number) => Node;
         let SourceFileConstructor: new (kind: SyntaxKind, pos: number, end: number) => Node;
@@ -781,11 +783,11 @@ namespace ts {
         let parseErrorBeforeNextFinishedNode = false;
 
         /**
-         * Do parser. 设置初始状态，并将工作交给 parseSourceFileWorker 函数
+         * Do parser. Set the initial state and give the job to the `parseSourceFileWorker` function
          * @param fileName The name of source file
          * @param sourceText The text of source file
-         * @param languageVersion 编译后的版本，如es5, es6等
-         * @param syntaxCursor ?
+         * @param languageVersion The compiled version, such as es5, es6, etc.
+         * @param syntaxCursor A object used for incremental resolution
          * @param setParentNodes ?
          * @param scriptKind ?
          */
@@ -1070,6 +1072,10 @@ namespace ts {
             return func();
         }
 
+        /** Do things in some context by called doInXXX.
+         *
+         * such as: async function, yeild statement
+         */
         function doInsideOfContext<T>(context: NodeFlags, func: () => T): T {
             // contextFlagsToSet will contain only the context flags that
             // are not currently set that we need to temporarily enable.
@@ -5738,7 +5744,10 @@ namespace ts {
         }
 
         /**
-         * 根据 Scanner 返回的当前 token 来切换(调用相应的 parseXXX 函数)，例如：如果当前 token 是一个 SemicolonToken(分号标记)，就会调用 paserEmptyStatement 为空语句创建一个 AST 节点
+         * Switch according to the current token returned by Scanner (call the corresponding parseXXX function)
+         *
+         * For example:
+         * > if the current token is a SemicolonToken (semicolon), it will call paserEmptyStatement to create an AST node for the empty statement
          */
         function parseStatement(): Statement {
             switch (token()) {
@@ -6854,6 +6863,8 @@ namespace ts {
                 return finishNode(result);
             }
 
+            /** In order to users are allowed to directly use JS JSDoc to comment types, so JSDoc comments in JS are also parsed as part of the source code
+             */
             export function parseIsolatedJSDocComment(content: string, start: number | undefined, length: number | undefined): { jsDoc: JSDoc, diagnostics: Diagnostic[] } | undefined {
                 initializeState(content, ScriptTarget.Latest, /*_syntaxCursor:*/ undefined, ScriptKind.JS);
                 sourceFile = <SourceFile>{ languageVariant: LanguageVariant.Standard, text: content };

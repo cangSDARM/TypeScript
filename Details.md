@@ -71,3 +71,22 @@ ts.executeCommandLine 获取sys，调用执行函数
 1. emitFilesAndReportErrors 生成js并报告错误
 2. program.emit emit js
 ```
+
+**语法节点分类**
+
+虽然语法节点种类很多，但其实只有四类：
+
+1. 类型节点（Type Node）：一般出现在“:”后面（var a: 类型节点)，可以解析为一个类型。
+2. 表达式节点（Expression）：可以计算得到一个值的节点，表达式节点只能依附于一个语句节点，不能独立使用。
+3. 语句节点（Statement）：可以直接在最外层使用的节点，俗称的几行代码就是指几个语句节点。
+4. 其它节点：其它内嵌在表达式或语句节点的特定节点，比如 case 节点。
+
+> 在 TypeScript 中，一般类型节点以 TypeNode 结尾；表达式节点以 Expression 结尾；语句节点以 Statement 结尾
+
+### Search More
+
+*  [AST Explore](https://astexplorer.net/)
+*  [ESTree Node Types Table](https://github.com/meriyah/meriyah/wiki/ESTree-Node-Types-Table)
+*  [ECMA Specification](http://www.ecma-international.org/ecma-262/)
+*  [Typescript Language specification](https://github.com/microsoft/TypeScript/blob/master/doc/spec.md)
+*  [Typescript Roadmap](https://github.com/microsoft/TypeScript/wiki/Roadmap)

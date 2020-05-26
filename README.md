@@ -39,13 +39,13 @@
 
 <img src="./asset/158732-20200113115412762-1000035138.png" width="432px" height="361.2px" />
 
+<img src="./asset/158732-20200123190536651-477500758.png" width="673.2px" height="524.4px" />
+
 See: [More Details](./Details.md)
 
 ## More Info
 
 *  [microsoft/TypeScript/README](https://github.com/microsoft/TypeScript/blob/master/README.md)
-*  [Language specification](https://github.com/microsoft/TypeScript/blob/master/doc/spec.md)
-*  [roadmap](https://github.com/microsoft/TypeScript/wiki/Roadmap)
 *  [TypeScript 源码详细解读](https://www.cnblogs.com/xuld/p/12180913.html)
 *  [TypeScript Deep Dive](https://basarat.gitbook.io/typescript/)
 
