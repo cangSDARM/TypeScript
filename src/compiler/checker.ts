@@ -1355,7 +1355,7 @@ namespace ts {
             const declContainer = getEnclosingBlockScopeContainer(declaration);
             if (declarationFile !== useFile) {
                 if ((moduleKind && (declarationFile.externalModuleIndicator || useFile.externalModuleIndicator)) ||
-                    (!compilerOptions.outFile && !compilerOptions.out) ||
+                    (!outFile(compilerOptions)) ||
                     isInTypeQuery(usage) ||
                     declaration.flags & NodeFlags.Ambient) {
                     // nodes are in different files and order cannot be determined
@@ -5204,7 +5204,7 @@ namespace ts {
                 const links = getSymbolLinks(symbol);
                 let specifier = links.specifierCache && links.specifierCache.get(contextFile.path);
                 if (!specifier) {
-                    const isBundle = (compilerOptions.out || compilerOptions.outFile);
+                    const isBundle = !!outFile(compilerOptions);
                     // For declaration bundles, we need to generate absolute paths relative to the common source dir for imports,
                     // just like how the declaration emitter does for the ambient module declarations - we can easily accomplish this
                     // using the `baseUrl` compiler option (which we would otherwise never use in declaration emit) and a non-relative
@@ -7873,7 +7873,7 @@ namespace ts {
                 (resolvedSymbol || symbol).exports!.forEach((s, name) => {
                     const exportedMember = members.get(name)!;
                     if (exportedMember && exportedMember !== s) {
-                        if (s.flags & SymbolFlags.Value) {
+                        if (s.flags & SymbolFlags.Value && exportedMember.flags & SymbolFlags.Value) {
                             // If the member has an additional value-like declaration, union the types from the two declarations,
                             // but issue an error if they occurred in two different files. The purpose is to support a JS file with
                             // a pattern like:
