@@ -4067,6 +4067,9 @@ namespace ts {
 
             const firstIdentifier = getFirstIdentifier(entityName);
             const symbol = resolveName(enclosingDeclaration, firstIdentifier.escapedText, meaning, /*nodeNotFoundErrorMessage*/ undefined, /*nameArg*/ undefined, /*isUse*/ false);
+            if (symbol && symbol.flags & SymbolFlags.TypeParameter && meaning & SymbolFlags.Type) {
+                return { accessibility: SymbolAccessibility.Accessible };
+            }
 
             // Verify if the symbol is accessible
             return (symbol && hasVisibleDeclarations(symbol, /*shouldComputeAliasToMakeVisible*/ true)) || {
@@ -19864,6 +19867,9 @@ namespace ts {
                 case SyntaxKind.BinaryExpression:
                     switch ((<BinaryExpression>node).operatorToken.kind) {
                         case SyntaxKind.EqualsToken:
+                        case SyntaxKind.BarBarEqualsToken:
+                        case SyntaxKind.AmpersandAmpersandEqualsToken:
+                        case SyntaxKind.QuestionQuestionEqualsToken:
                             return getReferenceCandidate((<BinaryExpression>node).left);
                         case SyntaxKind.CommaToken:
                             return getReferenceCandidate((<BinaryExpression>node).right);
@@ -20838,6 +20844,9 @@ namespace ts {
             function narrowTypeByBinaryExpression(type: Type, expr: BinaryExpression, assumeTrue: boolean): Type {
                 switch (expr.operatorToken.kind) {
                     case SyntaxKind.EqualsToken:
+                    case SyntaxKind.BarBarEqualsToken:
+                    case SyntaxKind.AmpersandAmpersandEqualsToken:
+                    case SyntaxKind.QuestionQuestionEqualsToken:
                         return narrowTypeByTruthiness(narrowType(type, expr.right, assumeTrue), expr.left, assumeTrue);
                     case SyntaxKind.EqualsEqualsToken:
                     case SyntaxKind.ExclamationEqualsToken:
@@ -22462,6 +22471,9 @@ namespace ts {
             const { left, operatorToken, right } = binaryExpression;
             switch (operatorToken.kind) {
                 case SyntaxKind.EqualsToken:
+                case SyntaxKind.AmpersandAmpersandEqualsToken:
+                case SyntaxKind.BarBarEqualsToken:
+                case SyntaxKind.QuestionQuestionEqualsToken:
                     if (node !== right) {
                         return undefined;
                     }
@@ -25054,22 +25066,40 @@ namespace ts {
                 effectiveParameterCount = args.length === 0 ? effectiveParameterCount : 1; // class may have argumentless ctor functions - still resolve ctor and compare vs props member type
                 effectiveMinimumArguments = Math.min(effectiveMinimumArguments, 1); // sfc may specify context argument - handled by framework and not typechecked
             }
+            else if (!node.arguments) {
+                // This only happens when we have something of the form: 'new C'
+                Debug.assert(node.kind === SyntaxKind.NewExpression);
+                return getMinArgumentCount(signature) === 0;
+            }
             else {
-                if (!node.arguments) {
-                    // This only happens when we have something of the form: 'new C'
-                    Debug.assert(node.kind === SyntaxKind.NewExpression);
-                    return getMinArgumentCount(signature) === 0;
-                }
-
                 argCount = signatureHelpTrailingComma ? args.length + 1 : args.length;
 
                 // If we are missing the close parenthesis, the call is incomplete.
                 callIsIncomplete = node.arguments.end === node.end;
 
-                // If a spread argument is present, check that it corresponds to a rest parameter or at least that it's in the valid range.
-                const spreadArgIndex = getSpreadArgumentIndex(args);
-                if (spreadArgIndex >= 0) {
-                    return spreadArgIndex >= getMinArgumentCount(signature) && (hasEffectiveRestParameter(signature) || spreadArgIndex < getParameterCount(signature));
+                // If one or more spread arguments are present, check that they correspond to a rest parameter or at least that they are in the valid range.
+                const firstSpreadArgIndex = getSpreadArgumentIndex(args);
+                if (firstSpreadArgIndex >= 0) {
+                    if (firstSpreadArgIndex === args.length - 1) {
+                        // Special case, handles the munged arguments that we receive in case of a spread in the end (breaks the arg.expression below)
+                        //   (see below for code that starts with "const spreadArgument")
+                        return firstSpreadArgIndex >= getMinArgumentCount(signature) && (hasEffectiveRestParameter(signature) || firstSpreadArgIndex < getParameterCount(signature));
+                    }
+
+                    let totalCount = firstSpreadArgIndex; // count previous arguments
+                    for (let i = firstSpreadArgIndex; i < args.length; i++) {
+                        const arg = args[i];
+                        if (!isSpreadArgument(arg)) {
+                            totalCount += 1;
+                        }
+                        else {
+                            const argType = flowLoopCount ? checkExpression((<SpreadElement>arg).expression) : checkExpressionCached((<SpreadElement>arg).expression);
+                            totalCount += isTupleType(argType) ? getTypeArguments(argType).length
+                                : isArrayType(argType) ? 0
+                                : 1;
+                        }
+                    }
+                    return totalCount >= getMinArgumentCount(signature) && (hasEffectiveRestParameter(signature) || totalCount <= getParameterCount(signature));
                 }
             }
 
@@ -25547,7 +25577,7 @@ namespace ts {
                 const spreadArgument = <SpreadElement>args[length - 1];
                 const type = flowLoopCount ? checkExpression(spreadArgument.expression) : checkExpressionCached(spreadArgument.expression);
                 if (isTupleType(type)) {
-                    const typeArguments = getTypeArguments(<TypeReference>type);
+                    const typeArguments = getTypeArguments(type);
                     const restIndex = type.target.hasRestElement ? typeArguments.length - 1 : -1;
                     const syntheticArgs = map(typeArguments, (t, i) => createSyntheticExpression(spreadArgument, t, /*isSpread*/ i === restIndex, type.target.labeledElementDeclarations?.[i]));
                     return concatenate(args.slice(0, length - 1), syntheticArgs);
@@ -28740,17 +28770,35 @@ namespace ts {
                 case SyntaxKind.InKeyword:
                     return checkInExpression(left, right, leftType, rightType);
                 case SyntaxKind.AmpersandAmpersandToken:
-                    return getTypeFacts(leftType) & TypeFacts.Truthy ?
+                case SyntaxKind.AmpersandAmpersandEqualsToken: {
+                    const resultType = getTypeFacts(leftType) & TypeFacts.Truthy ?
                         getUnionType([extractDefinitelyFalsyTypes(strictNullChecks ? leftType : getBaseTypeOfLiteralType(rightType)), rightType]) :
                         leftType;
+                    if (operator === SyntaxKind.AmpersandAmpersandEqualsToken) {
+                        checkAssignmentOperator(rightType);
+                    }
+                    return resultType;
+                }
                 case SyntaxKind.BarBarToken:
-                    return getTypeFacts(leftType) & TypeFacts.Falsy ?
+                case SyntaxKind.BarBarEqualsToken: {
+                    const resultType = getTypeFacts(leftType) & TypeFacts.Falsy ?
                         getUnionType([removeDefinitelyFalsyTypes(leftType), rightType], UnionReduction.Subtype) :
                         leftType;
+                    if (operator === SyntaxKind.BarBarEqualsToken) {
+                        checkAssignmentOperator(rightType);
+                    }
+                    return resultType;
+                }
                 case SyntaxKind.QuestionQuestionToken:
-                    return getTypeFacts(leftType) & TypeFacts.EQUndefinedOrNull ?
+                case SyntaxKind.QuestionQuestionEqualsToken: {
+                    const resultType = getTypeFacts(leftType) & TypeFacts.EQUndefinedOrNull ?
                         getUnionType([getNonNullableType(leftType), rightType], UnionReduction.Subtype) :
                         leftType;
+                    if (operator === SyntaxKind.QuestionQuestionEqualsToken) {
+                        checkAssignmentOperator(rightType);
+                    }
+                    return resultType;
+                }
                 case SyntaxKind.EqualsToken:
                     const declKind = isBinaryExpression(left.parent) ? getAssignmentDeclarationKind(left.parent) : AssignmentDeclarationKind.None;
                     checkAssignmentDeclaration(declKind, rightType);
