@@ -40,7 +40,7 @@ namespace ts.FindAllReferences {
     function getImportersForExport(
         sourceFiles: readonly SourceFile[],
         sourceFilesSet: ReadonlySet<string>,
-        allDirectImports: Map<string, ImporterOrCallExpression[]>,
+        allDirectImports: ESMap<string, ImporterOrCallExpression[]>,
         { exportingModuleSymbol, exportKind }: ExportInfo,
         checker: TypeChecker,
         cancellationToken: CancellationToken | undefined,
@@ -121,6 +121,10 @@ namespace ts.FindAllReferences {
                             if (!direct.exportClause) {
                                 // This is `export * from "foo"`, so imports of this module may import the export too.
                                 handleDirectImports(getContainingModuleSymbol(direct, checker));
+                            }
+                            else if (direct.exportClause.kind === SyntaxKind.NamespaceExport) {
+                                // `export * as foo from "foo"` add to indirect uses
+                                addIndirectUsers(getSourceFileLikeForImportDeclaration(direct));
                             }
                             else {
                                 // This is `export { foo } from "foo"` and creates an alias symbol, so recursive search will get handle re-exports.
@@ -368,7 +372,7 @@ namespace ts.FindAllReferences {
     }
 
     /** Returns a map from a module symbol Id to all import statements that directly reference the module. */
-    function getDirectImportsMap(sourceFiles: readonly SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken | undefined): Map<string, ImporterOrCallExpression[]> {
+    function getDirectImportsMap(sourceFiles: readonly SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken | undefined): ESMap<string, ImporterOrCallExpression[]> {
         const map = createMap<ImporterOrCallExpression[]>();
 
         for (const sourceFile of sourceFiles) {
